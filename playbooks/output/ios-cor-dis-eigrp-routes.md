@@ -8,5 +8,5 @@
 
 # switch - Summarization Report for access switches
 | Numbers of routes pre-summarized | Number of routes post-summarized | Summarized Route |
-| -------- | --------------- | ------------------- | ---------------- |
+| -------- | --------------- | ------------------- |
 | 93 | 35 | ['10.55.0.0/19', '10.56.0.0/19', '10.135.0.0/16'] |
