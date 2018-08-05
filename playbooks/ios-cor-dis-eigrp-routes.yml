@@ -1,0 +1,52 @@
+---
+
+- name: "REPORT -  EIGRP learned routes using CDP / EIGRP topology and possible summarization on distribution pairs"
+  hosts: 
+  connection: network_cli
+  become: yes
+  become_method: enable
+  gather_facts: no
+  vars:
+   cdp_command: show cdp neighbors detail
+   eigrp_command: show ip eigrp topology
+
+  tasks:
+    - name: "Gather data via show cdp neighbor command"
+      ios_command:
+        commands: "{{ cdp_command }}"
+      register: cdp_output
+
+    - name: "Parse cdp neighbor info"
+      set_fact:
+        cdp_struct: "{{ cdp_output.stdout.0 | ntc_parse(cdp_command, 'cisco_ios', 'ntc-templates/templates/') }}"
+
+    - name: "Gather data via show show ip eigrp topology command"
+      ios_command:
+        commands: "{{ eigrp_command }}"
+      register: eigrp_top
+
+    - name: "Parse eigrp topology info"
+      set_fact:
+        eigrp_struct: "{{ eigrp_top.stdout.0 | ntc_parse(eigrp_command, 'cisco_ios', 'ntc-templates/templates/') }}"
+
+    - name: "Create file with necessary data using Jinja2 template - ios-cor-dis-eigrp-routes.j2"
+      template:
+        src: playbooks/templates/ios-cor-dis-eigrp-routes.j2
+        dest: playbooks/output/{{ inventory_hostname}}-eigrp-routes.md
+
+    - name: "Remove previously assembled file - ios-cor-dis-eigrp-routes.md"
+      file:
+        path: playbooks/output/ios-cor-dis-eigrp-routes.md
+        state: absent
+      run_once: true
+
+    - name: "Assemble all data into one file"
+      assemble:
+        src: playbooks/output/
+        dest: playbooks/output/ios-cor-dis-eigrp-routes.md
+      run_once: true
+
+    - name: "Remove all files other assembled file"
+      file:
+        path: playbooks/output/{{ inventory_hostname}}-eigrp-routes.md
+        state: absent

@@ -1,0 +1,29 @@
+# {{ inventory_hostname }} - Neighbors and EIGRP learned routes
+
+
+| Neighbor | Local Interface | Neighbor IP Address | Remote Interface | Summary Routes |
+| -------- | --------------- | ------------------- | ---------------- | -------------- |
+{% for neighbor in cdp_struct -%}
+{% set summary_routes = [] %}
+  {%- for routes in eigrp_struct %}
+    {%- if neighbor.management_ip in routes.adv_router and routes.mask <= '29' -%}
+      {{ summary_routes.append(routes.route + '/' + routes.mask) }}
+    {%- endif -%}
+  {% endfor %}
+| {{ neighbor.destination_host }} | {{ neighbor.local_port }} | {{ neighbor.management_ip }} | {{ neighbor.remote_port }} | {{ summary_routes }} |
+{% endfor %}
+
+
+
+# {{ inventory_hostname }} - Summarization Report for access switches
+| Numbers of routes pre-summarized | Number of routes post-summarized | Summarized Route |
+| -------- | --------------- | ------------------- | ---------------- |
+{% set access_summary_routes = [] %}
+{% for neighbor in cdp_struct -%}
+  {%- for routes in eigrp_struct %}
+    {%- if neighbor.management_ip in routes.adv_router and 'ACC' in neighbor.destination_host and routes.mask <= '29' -%}
+      {{ access_summary_routes.append(routes.route + '/' + routes.mask) }}
+    {%- endif -%}
+  {% endfor %}
+{% endfor %}
+| {{ access_summary_routes | length }} | {{ access_summary_routes | cidr_merge | length }} | {{ access_summary_routes | cidr_merge }} |
