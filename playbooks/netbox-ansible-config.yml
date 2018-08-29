@@ -1,0 +1,13 @@
+---
+
+- name: Create config using hostvars from Netbox and Jinja2 template
+  connection: local
+  hosts: mock-access
+  gather_facts: False
+
+  tasks:
+    - name: "Generate configs using data obtained from netbox"
+      template:
+        src: "/ansible/playbooks/templates/config-generation.j2"
+        dest: "/ansible/playbooks/output/{{ inventory_hostname }}.cfg"
+        lstrip_blocks: yes

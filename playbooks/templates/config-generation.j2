@@ -1,0 +1,79 @@
+service tcp-keepalives-in
+service tcp-keepalives-out
+service timestamps debug datetime msec localtime show-timezone
+service timestamps log datetime msec localtime show-timezone
+service password-encryption
+!
+hostname {{ inventory_hostname }}
+!
+aaa session-id common
+clock timezone MST -7
+clock summer-time MDT recurring
+!
+aaa new-model
+aaa authentication login default group local enable
+!
+no ip domain-lookup
+ip domain-name mock-domain.com
+ip ssh version 2
+udld aggressive
+!
+spanning-tree mode rapid-pvst
+spanning-tree portfast default
+spanning-tree portfast bpduguard default
+port-channel load-balance src-dst-port
+!
+vlan 100
+ name data
+vlan 101
+ name voip
+vlan 102
+ name pci
+vlan 103
+ name wireless
+!
+{% for interface in interfaces -%}
+
+{{ interface.name }}
+ {% if interface.mode -%}
+
+  {% if interface.mode.label == 'Access' %}
+ description {{ interface.description }}
+ switchport mode access
+ switchport access vlan {{ interface.untagged_vlan.vid }}
+ spanning-tree portfast default
+!
+  {% elif interface.mode.label == 'Tagged All' %}
+ description {{ interface.description }}
+ switchport trunk encapsulation dot1q
+ switchport mode trunk
+!
+  {% endif -%}
+
+ {% elif interface.ip %}
+ description {{ interface.description }}
+ {{ interface.ip | ipaddr('address') }} {{ interface.ip | ipaddr('netmask') }} 
+!
+ {% else %}
+ shutdown
+!
+ {% endif -%}
+
+{%- endfor -%}
+!
+!
+no ip http server
+no ip http secure-server
+!
+{% for snmp_host in config_context.snmp_servers %}
+snmp-server host {{ snmp_host }} version 2c readstring
+{% endfor %}
+!
+line vty 0 4
+ transport input ssh
+line vty 5 15
+ transport input ssh
+!
+{% for ntp_server in config_context.ntp %}
+ntp server {{ ntp_server }}
+{% endfor %}
